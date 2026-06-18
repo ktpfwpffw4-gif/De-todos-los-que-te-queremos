@@ -185,8 +185,10 @@ async function guardarCarta(cartaNueva) {
   });
 
   if (!respuesta.ok) {
-    throw new Error("No se pudo guardar la carta online.");
+    const texto = await respuesta.text().catch(() => "");
+    throw new Error(`No se pudo guardar la carta online. HTTP ${respuesta.status}. ${texto}`);
   }
+
 
   estado.cartasUsuario = await cargarCartas();
 }
@@ -426,10 +428,11 @@ async function manejarNuevaCarta(event) {
     renderCarta();
   } catch (error) {
     console.error(error);
-    mostrarEstado("No se pudo guardar la carta. Revisa la conexion o Firebase.");
+    mostrarEstado(error?.message || "No se pudo guardar la carta. Revisa la conexion o Firebase.");
   } finally {
     botonGuardar.disabled = false;
   }
+
 }
 
 async function manejarBorradoIndividual(event) {
@@ -475,5 +478,8 @@ async function iniciarApp() {
   estado.cartasUsuario = await cargarCartas();
   renderListaPanel();
 }
+
+iniciarApp();
+
 
 iniciarApp();
