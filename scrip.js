@@ -2,8 +2,11 @@ const STORAGE_KEY = "cartas-personales-v1";
 const PASSWORD_LEER = "SAPA";
 const PASSWORD_AGREGAR = "BETO";
 const PASSWORD_ADMIN = "BETO1";
+const DB_CONFIG = window.CARTAS_DB_CONFIG || {};
+const FIREBASE_DATABASE_URL = (DB_CONFIG.firebaseDatabaseURL || "").replace(/\/$/, "");
+const USAR_BASE_ONLINE = Boolean(FIREBASE_DATABASE_URL);
 
-let cartasUsuario = cargarCartasUsuario();
+let cartasUsuario = [];
 let indiceActual = 0;
 let cartaAbierta = false;
 let permisoActual = "";
@@ -29,6 +32,7 @@ const mensajePassword = document.querySelector("#mensajePassword");
 const tituloPanel = document.querySelector("#tituloPanel");
 const textoPermiso = document.querySelector("#textoPermiso");
 const btnBorrar = document.querySelector("#btnBorrar");
+const estadoGuardado = document.querySelector("#estadoGuardado");
 
 function todasLasCartas() {
   return [...CARTAS_BASE, ...cartasUsuario, CARTA_FINAL];
@@ -65,13 +69,108 @@ function abrirPanel(permiso) {
   renderListaPanel();
 }
 
-function cargarCartasUsuario() {
-  const guardadas = localStorage.getItem(STORAGE_KEY);
-  return guardadas ? JSON.parse(guardadas) : [];
+function mostrarEstadoGuardado(mensaje) {
+  if (estadoGuardado) {
+    estadoGuardado.textContent = mensaje;
+  }
 }
 
-function guardarCartasUsuario() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cartasUsuario));
+function normalizarCartasRemotas(datos) {
+  if (!datos) return [];
+
+  return Object.entries(datos)
+    .map(([id, carta]) => ({ id, ...carta }))
+    .sort((a, b) => (a.creadaEn || 0) - (b.creadaEn || 0));
+}
+
+async function cargarCartasUsuario() {
+  if (!USAR_BASE_ONLINE) {
+    mostrarEstadoGuardado("Modo local: estas cartas solo se guardan en este dispositivo.");
+    const guardadas = localStorage.getItem(STORAGE_KEY);
+    return guardadas ? JSON.parse(guardadas) : [];
+  }
+
+  try {
+    mostrarEstadoGuardado("Cargando cartas compartidas...");
+    const respuesta = await fetch(`${FIREBASE_DATABASE_URL}/cartas.json`);
+
+    if (!respuesta.ok) {
+      throw new Error("No se pudieron cargar las cartas.");
+    }
+
+    mostrarEstadoGuardado("Modo online: las cartas se comparten para que Darlyn las vea.");
+    return normalizarCartasRemotas(await respuesta.json());
+  } catch (error) {
+    console.error(error);
+    mostrarEstadoGuardado("No se pudo conectar con la base online. Usando guardado local.");
+    const guardadas = localStorage.getItem(STORAGE_KEY);
+    return guardadas ? JSON.parse(guardadas) : [];
+  }
+}
+
+async function guardarCartaUsuario(cartaNueva) {
+  if (!USAR_BASE_ONLINE) {
+    cartasUsuario.push(cartaNueva);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cartasUsuario));
+    return;
+  }
+
+  const respuesta = await fetch(`${FIREBASE_DATABASE_URL}/cartas.json`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      ...cartaNueva,
+      creadaEn: Date.now()
+    })
+  });
+
+  if (!respuesta.ok) {
+    throw new Error("No se pudo guardar la carta online.");
+  }
+
+  cartasUsuario = await cargarCartasUsuario();
+}
+
+async function borrarCartaUsuario(index) {
+  const cartaParaBorrar = cartasUsuario[index];
+
+  if (!USAR_BASE_ONLINE) {
+    cartasUsuario.splice(index, 1);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cartasUsuario));
+    return;
+  }
+
+  if (!cartaParaBorrar?.id) return;
+
+  const respuesta = await fetch(`${FIREBASE_DATABASE_URL}/cartas/${cartaParaBorrar.id}.json`, {
+    method: "DELETE"
+  });
+
+  if (!respuesta.ok) {
+    throw new Error("No se pudo borrar la carta online.");
+  }
+
+  cartasUsuario = await cargarCartasUsuario();
+}
+
+async function borrarTodasLasCartasUsuario() {
+  if (!USAR_BASE_ONLINE) {
+    cartasUsuario = [];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cartasUsuario));
+    return;
+  }
+
+  const respuesta = await fetch(`${FIREBASE_DATABASE_URL}/cartas.json`, {
+    method: "DELETE"
+  });
+
+  if (!respuesta.ok) {
+    throw new Error("No se pudieron borrar las cartas online.");
+  }
+
+  cartasUsuario = [];
 }
 
 function renderCarta() {
@@ -167,7 +266,24 @@ function leerArchivoComoDataUrl(archivo) {
     }
 
     const lectorArchivo = new FileReader();
-    lectorArchivo.onload = () => resolve(lectorArchivo.result);
+    lectorArchivo.onload = () => {
+      const imagen = new Image();
+
+      imagen.onload = () => {
+        const maximo = 900;
+        const escala = Math.min(1, maximo / Math.max(imagen.width, imagen.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(imagen.width * escala);
+        canvas.height = Math.round(imagen.height * escala);
+
+        const contexto = canvas.getContext("2d");
+        contexto.drawImage(imagen, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+
+      imagen.onerror = () => resolve(lectorArchivo.result);
+      imagen.src = lectorArchivo.result;
+    };
     lectorArchivo.readAsDataURL(archivo);
   });
 }
@@ -216,43 +332,63 @@ btnAnterior.addEventListener("click", anteriorCarta);
 
 formCarta.addEventListener("submit", async (event) => {
   event.preventDefault();
+  const botonGuardar = formCarta.querySelector("button[type='submit']");
+  botonGuardar.disabled = true;
 
-  const foto = await leerArchivoComoDataUrl(document.querySelector("#inputFoto").files[0]);
+  try {
+    const foto = await leerArchivoComoDataUrl(document.querySelector("#inputFoto").files[0]);
 
-  cartasUsuario.push({
-    nombre: document.querySelector("#inputNombre").value.trim(),
-    titulo: document.querySelector("#inputTitulo").value.trim(),
-    texto: document.querySelector("#inputTexto").value.trim(),
-    foto
-  });
+    await guardarCartaUsuario({
+      nombre: document.querySelector("#inputNombre").value.trim(),
+      titulo: document.querySelector("#inputTitulo").value.trim(),
+      texto: document.querySelector("#inputTexto").value.trim(),
+      foto
+    });
 
-  guardarCartasUsuario();
-  formCarta.reset();
-  renderListaPanel();
-  renderCarta();
+    mostrarEstadoGuardado(USAR_BASE_ONLINE
+      ? "Carta guardada online. Darlyn podra verla desde su dispositivo."
+      : "Carta guardada en este dispositivo.");
+    formCarta.reset();
+    renderListaPanel();
+    renderCarta();
+  } catch (error) {
+    console.error(error);
+    mostrarEstadoGuardado("No se pudo guardar la carta. Revisa la conexion o Firebase.");
+  } finally {
+    botonGuardar.disabled = false;
+  }
 });
 
-listaCartas.addEventListener("click", (event) => {
+listaCartas.addEventListener("click", async (event) => {
   const boton = event.target.closest("[data-borrar]");
   if (!boton) return;
   if (permisoActual !== "admin") return;
 
   const index = Number(boton.dataset.borrar);
-  cartasUsuario.splice(index, 1);
-  guardarCartasUsuario();
-  renderListaPanel();
-  indiceActual = Math.min(indiceActual, indiceCartaFinal());
-  renderCarta();
+
+  try {
+    await borrarCartaUsuario(index);
+    renderListaPanel();
+    indiceActual = Math.min(indiceActual, indiceCartaFinal());
+    renderCarta();
+  } catch (error) {
+    console.error(error);
+    mostrarEstadoGuardado("No se pudo borrar la carta.");
+  }
 });
 
-document.querySelector("#btnBorrar").addEventListener("click", () => {
+document.querySelector("#btnBorrar").addEventListener("click", async () => {
   if (permisoActual !== "admin") return;
 
-  cartasUsuario = [];
-  guardarCartasUsuario();
-  renderListaPanel();
-  indiceActual = 0;
-  renderCarta();
+  try {
+    await borrarTodasLasCartasUsuario();
+    renderListaPanel();
+    indiceActual = 0;
+    renderCarta();
+  } catch (error) {
+    console.error(error);
+    mostrarEstadoGuardado("No se pudieron borrar las cartas.");
+  }
 });
 
 panel.addEventListener("click", (event) => {
@@ -261,4 +397,9 @@ panel.addEventListener("click", (event) => {
   }
 });
 
-renderListaPanel();
+async function iniciarCartas() {
+  cartasUsuario = await cargarCartasUsuario();
+  renderListaPanel();
+}
+
+iniciarCartas();

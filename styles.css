@@ -323,6 +323,12 @@ button:disabled {
   border-radius: 8px;
 }
 
+.estado-guardado {
+  margin: -8px 0 18px;
+  color: var(--vino);
+  font-weight: 700;
+}
+
 .formulario {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
