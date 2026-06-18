@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cartas para ti</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app">
+    <section class="pantalla inicio activa" id="inicio">
+      <div class="portada-wrap">
+        <img class="portada" src="assets/portada.jpg" alt="De todos los que te queremos">
+      </div>
+      <button class="boton-principal" id="btnLeer">Leer cartas</button>
+    </section>
+
+    <section class="pantalla lector" id="lector">
+      <header class="barra">
+        <button class="boton-secundario" id="btnVolver">Inicio</button>
+        <p id="contador">Carta 1 de 1</p>
+      </header>
+
+      <div class="zona-carta">
+        <button class="flecha" id="btnAnterior" aria-label="Carta anterior">&#8249;</button>
+
+        <article class="carta-cerrada" id="carta">
+          <div class="cara cara-frente">
+            <img src="assets/marco-carta.jpg" alt="">
+            <div class="nombre-frente" id="nombreFrente">Nombre</div>
+          </div>
+
+          <div class="cara cara-interior">
+            <div class="papel" id="papelCarta">
+              <h1 id="tituloCarta">Titulo</h1>
+              <p id="textoCarta">Texto de la carta.</p>
+            </div>
+          </div>
+        </article>
+
+        <button class="flecha" id="btnSiguiente" aria-label="Carta siguiente">&#8250;</button>
+      </div>
+
+      <div class="acciones">
+        <button class="boton-principal" id="btnAbrir">Abrir carta</button>
+      </div>
+    </section>
+
+    <section class="panel oculto" id="panel">
+      <div class="panel-contenido">
+        <div class="panel-titulo">
+          <h2 id="tituloPanel">Entrar</h2>
+          <button class="cerrar" id="btnCerrarPanel" aria-label="Cerrar">x</button>
+        </div>
+
+        <form class="acceso-panel" id="formAcceso">
+          <label>
+            Contraseña
+            <input type="password" id="inputPassword" placeholder="Escribe la contraseña" autocomplete="off" required>
+          </label>
+          <button class="boton-principal" type="submit">Entrar</button>
+          <p class="mensaje-error" id="mensajePassword"></p>
+        </form>
+
+        <div class="contenido-protegido oculto" id="contenidoPanel">
+          <p class="permiso-panel" id="textoPermiso"></p>
+
+          <form id="formCarta" class="formulario">
+            <label>
+              Nombre de la carta
+              <input type="text" id="inputNombre" placeholder="Ej: Mamá, Ana, Sofía..." required>
+            </label>
+
+            <label>
+              Título
+              <input type="text" id="inputTitulo" placeholder="Ej: Para ti" required>
+            </label>
+
+            <label>
+              Texto
+              <textarea id="inputTexto" rows="6" placeholder="Escribe aquí la carta..." required></textarea>
+            </label>
+
+            <label>
+              Foto de fondo
+              <input type="file" id="inputFoto" accept="image/*">
+            </label>
+
+            <button class="boton-principal" type="submit">Guardar carta</button>
+          </form>
+
+          <div class="lista-panel">
+            <h3>Cartas guardadas</h3>
+            <div id="listaCartas"></div>
+            <button class="boton-secundario peligro oculto" id="btnBorrar">Borrar cartas agregadas</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+ <script src="cartas.js"></script>
+  <script src="script.js"></script>
+  
+</body>
+</html>
