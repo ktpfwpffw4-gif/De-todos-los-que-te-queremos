@@ -10,5 +10,3 @@ __pycache__/
 # Env files
 .env
 
-# Firebase config with project-specific URL
-firebase-config.js

@@ -98,16 +98,25 @@ function cerrarModal() {
 
 function abrirPanelCartas(permiso) {
   estado.permisoActual = permiso;
+  const puedeBorrar = permiso === "admin" && !USAR_BASE_ONLINE;
 
   dom.tituloPanel.textContent = "Agregar cartas";
-  dom.textoPermiso.textContent = permiso === "admin"
-    ? "Permiso completo: puedes agregar y borrar cartas."
-    : "Puedes agregar cartas. No puedes borrar cartas guardadas.";
+  dom.textoPermiso.textContent = obtenerTextoPermiso(permiso);
 
-  dom.botones.borrarTodo.classList.toggle("oculto", permiso !== "admin");
+  dom.botones.borrarTodo.classList.toggle("oculto", !puedeBorrar);
   dom.formularios.acceso.classList.add("oculto");
   dom.panelContenido.classList.remove("oculto");
   renderListaPanel();
+}
+
+function obtenerTextoPermiso(permiso) {
+  if (USAR_BASE_ONLINE) {
+    return "Modo online: puedes agregar cartas compartidas. Para borrar cartas, usa la consola de Firebase.";
+  }
+
+  return permiso === "admin"
+    ? "Permiso completo: puedes agregar y borrar cartas."
+    : "Puedes agregar cartas. No puedes borrar cartas guardadas.";
 }
 
 function escaparHtml(texto = "") {
@@ -255,7 +264,7 @@ function renderListaPanel() {
 
   dom.listaCartas.innerHTML = estado.cartasUsuario
     .map((item, index) => {
-      const botonBorrar = estado.permisoActual === "admin"
+      const botonBorrar = estado.permisoActual === "admin" && !USAR_BASE_ONLINE
         ? `<button class="boton-secundario" data-borrar="${index}">Quitar</button>`
         : "";
 
@@ -427,6 +436,10 @@ async function manejarBorradoIndividual(event) {
   const boton = event.target.closest("[data-borrar]");
 
   if (!boton || estado.permisoActual !== "admin") return;
+  if (USAR_BASE_ONLINE) {
+    mostrarEstado("Por seguridad, las cartas online se borran desde Firebase.");
+    return;
+  }
 
   try {
     await borrarCarta(Number(boton.dataset.borrar));
@@ -441,6 +454,10 @@ async function manejarBorradoIndividual(event) {
 
 async function manejarBorradoTotal() {
   if (estado.permisoActual !== "admin") return;
+  if (USAR_BASE_ONLINE) {
+    mostrarEstado("Por seguridad, las cartas online se borran desde Firebase.");
+    return;
+  }
 
   try {
     await borrarTodasLasCartas();

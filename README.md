@@ -1,27 +1,35 @@
 # Cartas para Darlyn
 
-Proyecto simple para crear y leer cartas (mensajes) que Darlyn pueda ver.
+Pagina para leer y agregar cartas desde diferentes dispositivos.
 
-Instrucciones rápidas
+## Como funciona
 
-1) Inicializar repositorio Git y subir a GitHub
+- GitHub Pages muestra la pagina.
+- Firebase Realtime Database guarda las cartas compartidas.
+- Las reglas de Firebase permiten agregar cartas nuevas, pero bloquean editar o borrar desde la pagina publica.
 
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-# crea un repo en GitHub y conecta el remoto
-git remote add origin https://github.com/<tu-usuario>/<tu-repo>.git
-git branch -M main
-git push -u origin main
+## Archivos importantes
+
+- `index.html`: estructura de la pagina.
+- `styles.css`: estilos visuales.
+- `script.js`: logica de lectura, guardado y conexion online.
+- `cartas.js`: cartas base que van incluidas en la pagina.
+- `firebase-config.js`: URL de Firebase que usa la pagina publicada.
+- `database.rules.json`: reglas recomendadas para Firebase Realtime Database.
+
+## Configurar Firebase
+
+1. Entra a https://console.firebase.google.com/
+2. Crea o abre tu proyecto.
+3. Ve a Realtime Database.
+4. Crea la base de datos.
+5. Copia la URL de la base. Se parece a:
+
+```txt
+https://tu-proyecto-default-rtdb.firebaseio.com
 ```
 
-2) Conectar Firebase Realtime Database (para que las cartas se compartan entre dispositivos)
-
-- Crea un proyecto en https://console.firebase.google.com/
-- En "Realtime Database" crea una base de datos en modo de prueba (o configura reglas y auth apropiadas).
-- Copia la URL de la base de datos (termina en `.firebaseio.com` o `default-rtdb.firebaseio.com`).
-- En el proyecto local duplica `firebase-config.example.js` a `firebase-config.js` y pega la URL:
+6. Pega esa URL en `firebase-config.js`:
 
 ```js
 window.CARTAS_DB_CONFIG = {
@@ -29,38 +37,18 @@ window.CARTAS_DB_CONFIG = {
 };
 ```
 
-Nota: `firebase-config.js` está en `.gitignore` para evitar subir datos del proyecto.
+7. En Realtime Database > Reglas, pega el contenido de `database.rules.json`.
 
-3) Reglas mínimas para pruebas
-
-En Realtime Database > Reglas, usa algo temporalmente permisivo solo para pruebas:
-
-```json
-{
-  "rules": {
-    ".read": true,
-    ".write": true
-  }
-}
-```
-
-4) Abrir la página
-
-Abre `index.html` en un navegador (o sirve la carpeta con un servidor simple):
+## Subir cambios
 
 ```bash
-# Python 3
-python -m http.server 8000
-# luego abre http://localhost:8000
+git add .
+git commit -m "Update page"
+git push origin main
 ```
 
-5) Seguridad
+## Seguridad
 
-- Para producción, configura Realtime Database Rules y autenticación (Firebase Auth) para limitar quién puede escribir/leer.
-- Alternativamente, crea un endpoint seguro en un servidor que valide peticiones antes de escribir en la DB.
+Estas reglas dejan que la gente agregue cartas, pero no las pueda editar ni borrar desde la pagina. Para borrar cartas, entra a Firebase Console y borralas desde la base de datos.
 
-Si quieres, puedo:
-- Preparar un pequeño script para desplegar automáticamente a GitHub Pages.
-- Añadir autenticación básica con Firebase Auth para que solo usuarios autorizados puedan agregar o borrar cartas.
-# De-todos-los-que-te-queremos
-para DARLYN
+Las contrasenas dentro de JavaScript sirven solo para controlar la experiencia de la pagina, pero no son seguridad real porque el navegador puede ver el codigo.

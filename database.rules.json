@@ -1,0 +1,31 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "cartas": {
+      ".read": true,
+      "$cartaId": {
+        ".write": "!data.exists() && newData.exists()",
+        ".validate": "newData.hasChildren(['nombre', 'titulo', 'texto', 'creadaEn'])",
+        "nombre": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 80"
+        },
+        "titulo": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
+        },
+        "texto": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 3000"
+        },
+        "foto": {
+          ".validate": "!newData.exists() || newData.isString()"
+        },
+        "creadaEn": {
+          ".validate": "newData.isNumber()"
+        },
+        "$otro": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}
