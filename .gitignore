@@ -1,0 +1,14 @@
+# Node / editor
+node_modules/
+.vscode/
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Env files
+.env
+
+# Firebase config with project-specific URL
+firebase-config.js
