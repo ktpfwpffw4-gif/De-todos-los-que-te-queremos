@@ -44,6 +44,9 @@
       <div class="acciones">
         <button class="boton-principal" id="btnAbrir">Abrir carta</button>
       </div>
+
+      <!-- Reproductor de audio global (se muestra solo si hay audio) -->
+      <audio id="audioPlayer" controls hidden></audio>
     </section>
 
     <section class="panel oculto" id="panel">
@@ -89,6 +92,22 @@
             <button class="boton-principal" type="submit">Guardar carta</button>
           </form>
           <p class="estado-guardado" id="estadoGuardado"></p>
+
+          <!-- Formulario para subir audio global -->
+          <div class="audio-panel">
+            <h3>Audio de fondo</h3>
+            <form id="formAudio" class="formulario-audio">
+              <label>
+                Subir MP3 (audio de fondo)
+                <input type="file" id="inputAudio" accept="audio/*">
+              </label>
+              <div class="audio-acciones">
+                <button class="boton-principal" type="submit">Guardar audio</button>
+                <button class="boton-secundario peligro" type="button" id="btnEliminarAudio">Eliminar audio</button>
+              </div>
+            </form>
+            <p class="estado-guardado" id="estadoAudio"></p>
+          </div>
 
           <div class="lista-panel">
             <h3>Cartas guardadas</h3>
