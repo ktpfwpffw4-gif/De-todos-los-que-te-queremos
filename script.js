@@ -64,7 +64,7 @@ const dom = {
   listaCartas: $("#listaCartas"),
   estadoGuardado: $("#estadoGuardado"),
   estadoAudio: $("#estadoAudio"),
-  audioPanelDiv: $(".audio-panel"),
+  audioPanelDiv: $("#audioPanelDiv"),
   audioPlayer: $("#audioPlayer"),
   btnEliminarAudio: $("#btnEliminarAudio")
 };
@@ -117,7 +117,9 @@ function abrirPanelCartas(permiso) {
   dom.textoPermiso.textContent = obtenerTextoPermiso(permiso);
 
   dom.botones.borrarTodo.classList.toggle("oculto", !puedeBorrar);
-  dom.audioPanelDiv.classList.toggle("oculto", !esAdmin);
+  if (dom.audioPanelDiv) {
+    dom.audioPanelDiv.classList.toggle("oculto", !esAdmin);
+  }
   dom.formularios.acceso.classList.add("oculto");
   dom.panelContenido.classList.remove("oculto");
   renderListaPanel();
@@ -441,10 +443,14 @@ function configurarEventos() {
 
   dom.formularios.acceso.addEventListener("submit", manejarAcceso);
   dom.formularios.carta.addEventListener("submit", manejarNuevaCarta);
-  dom.formularios.audio.addEventListener("submit", manejarGuardarAudio);
+  if (dom.formularios.audio) {
+    dom.formularios.audio.addEventListener("submit", manejarGuardarAudio);
+  }
   dom.listaCartas.addEventListener("click", manejarBorradoIndividual);
   dom.botones.borrarTodo.addEventListener("click", manejarBorradoTotal);
-  dom.btnEliminarAudio.addEventListener("click", manejarEliminarAudio);
+  if (dom.btnEliminarAudio) {
+    dom.btnEliminarAudio.addEventListener("click", manejarEliminarAudio);
+  }
 }
 
 function manejarAcceso(event) {
