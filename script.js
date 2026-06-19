@@ -365,7 +365,9 @@ function entrarALector() {
 }
 
 function configurarEventos() {
+  // Botón Leer cartas: abre el modal de contraseña
   dom.botones.leer.addEventListener("click", abrirModalAcceso);
+
   dom.botones.volver.addEventListener("click", () => mostrarPantalla("inicio"));
   dom.botones.cerrarPanel.addEventListener("click", cerrarModal);
   dom.botones.abrir.addEventListener("click", abrirOCerrarCarta);
