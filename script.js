@@ -46,21 +46,27 @@ const dom = {
   },
   formularios: {
     acceso: $("#formAcceso"),
-    carta: $("#formCarta")
+    carta: $("#formCarta"),
+    audio: $("#formAudio")
   },
   inputs: {
     password: $("#inputPassword"),
     nombre: $("#inputNombre"),
     titulo: $("#inputTitulo"),
     texto: $("#inputTexto"),
-    foto: $("#inputFoto")
+    foto: $("#inputFoto"),
+    audio: $("#inputAudio")
   },
   panelContenido: $("#contenidoPanel"),
   tituloPanel: $("#tituloPanel"),
   textoPermiso: $("#textoPermiso"),
   mensajePassword: $("#mensajePassword"),
   listaCartas: $("#listaCartas"),
-  estadoGuardado: $("#estadoGuardado")
+  estadoGuardado: $("#estadoGuardado"),
+  estadoAudio: $("#estadoAudio"),
+  audioPanelDiv: $(".audio-panel"),
+  audioPlayer: $("#audioPlayer"),
+  btnEliminarAudio: $("#btnEliminarAudio")
 };
 
 function obtenerCartas() {
@@ -74,6 +80,12 @@ function obtenerIndiceCartaFinal() {
 function mostrarEstado(mensaje) {
   if (dom.estadoGuardado) {
     dom.estadoGuardado.textContent = mensaje;
+  }
+}
+
+function mostrarEstadoAudio(mensaje) {
+  if (dom.estadoAudio) {
+    dom.estadoAudio.textContent = mensaje;
   }
 }
 
@@ -99,11 +111,13 @@ function cerrarModal() {
 function abrirPanelCartas(permiso) {
   estado.permisoActual = permiso;
   const puedeBorrar = permiso === "admin" && !USAR_BASE_ONLINE;
+  const esAdmin = permiso === "admin";
 
   dom.tituloPanel.textContent = "Agregar cartas";
   dom.textoPermiso.textContent = obtenerTextoPermiso(permiso);
 
   dom.botones.borrarTodo.classList.toggle("oculto", !puedeBorrar);
+  dom.audioPanelDiv.classList.toggle("oculto", !esAdmin);
   dom.formularios.acceso.classList.add("oculto");
   dom.panelContenido.classList.remove("oculto");
   renderListaPanel();
@@ -143,6 +157,29 @@ function cargarCartasLocales() {
 
 function guardarCartasLocales(cartas) {
   localStorage.setItem(CONFIG.storageKey, JSON.stringify(cartas));
+}
+
+function cargarAudioLocal() {
+  return localStorage.getItem("audio-fondo") || null;
+}
+
+function guardarAudioLocal(audioDataUrl) {
+  if (audioDataUrl) {
+    localStorage.setItem("audio-fondo", audioDataUrl);
+  } else {
+    localStorage.removeItem("audio-fondo");
+  }
+}
+
+function cargarAudioEnReproductor() {
+  const audioData = cargarAudioLocal();
+  if (audioData && dom.audioPlayer) {
+    dom.audioPlayer.src = audioData;
+    dom.audioPlayer.hidden = false;
+    dom.audioPlayer.play().catch(() => {
+      // El navegador puede bloquear autoplay
+    });
+  }
 }
 
 async function cargarCartas() {
@@ -347,6 +384,27 @@ function comprimirImagenComoDataUrl(archivo) {
   });
 }
 
+function comprimirAudioComoDataUrl(archivo) {
+  return new Promise((resolve) => {
+    if (!archivo) {
+      resolve("");
+      return;
+    }
+
+    const lectorArchivo = new FileReader();
+
+    lectorArchivo.onload = () => {
+      resolve(lectorArchivo.result);
+    };
+
+    lectorArchivo.onerror = () => {
+      resolve("");
+    };
+
+    lectorArchivo.readAsDataURL(archivo);
+  });
+}
+
 function validarPassword(password) {
   const passwordLimpia = password.trim().toUpperCase();
 
@@ -362,6 +420,7 @@ function entrarALector() {
   estado.indiceActual = 0;
   mostrarPantalla("lector");
   renderCarta();
+  cargarAudioEnReproductor();
 }
 
 function configurarEventos() {
@@ -382,8 +441,10 @@ function configurarEventos() {
 
   dom.formularios.acceso.addEventListener("submit", manejarAcceso);
   dom.formularios.carta.addEventListener("submit", manejarNuevaCarta);
+  dom.formularios.audio.addEventListener("submit", manejarGuardarAudio);
   dom.listaCartas.addEventListener("click", manejarBorradoIndividual);
   dom.botones.borrarTodo.addEventListener("click", manejarBorradoTotal);
+  dom.btnEliminarAudio.addEventListener("click", manejarEliminarAudio);
 }
 
 function manejarAcceso(event) {
@@ -434,7 +495,47 @@ async function manejarNuevaCarta(event) {
   } finally {
     botonGuardar.disabled = false;
   }
+}
 
+async function manejarGuardarAudio(event) {
+  event.preventDefault();
+
+  const botonGuardar = dom.formularios.audio.querySelector("button[type='submit']");
+  botonGuardar.disabled = true;
+
+  try {
+    const archivo = dom.inputs.audio.files[0];
+    if (!archivo) {
+      mostrarEstadoAudio("Selecciona un archivo de audio.");
+      botonGuardar.disabled = false;
+      return;
+    }
+
+    const audioDataUrl = await comprimirAudioComoDataUrl(archivo);
+    guardarAudioLocal(audioDataUrl);
+
+    mostrarEstadoAudio("Audio guardado correctamente. Solo tú (admin) puedes cambiarlo.");
+    dom.formularios.audio.reset();
+    cargarAudioEnReproductor();
+  } catch (error) {
+    console.error(error);
+    mostrarEstadoAudio("No se pudo guardar el audio.");
+  } finally {
+    botonGuardar.disabled = false;
+  }
+}
+
+function manejarEliminarAudio() {
+  if (estado.permisoActual !== "admin") {
+    mostrarEstadoAudio("Solo el admin puede eliminar el audio.");
+    return;
+  }
+
+  guardarAudioLocal(null);
+  dom.audioPlayer.src = "";
+  dom.audioPlayer.hidden = true;
+  dom.formularios.audio.reset();
+  mostrarEstadoAudio("Audio eliminado.");
 }
 
 async function manejarBorradoIndividual(event) {
@@ -479,6 +580,7 @@ async function iniciarApp() {
   configurarEventos();
   estado.cartasUsuario = await cargarCartas();
   renderListaPanel();
+  cargarAudioEnReproductor();
 }
 
 iniciarApp();
